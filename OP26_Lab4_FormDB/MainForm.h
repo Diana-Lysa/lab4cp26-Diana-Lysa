@@ -1,4 +1,5 @@
 #pragma once
+#include "AddForm.h" 
 
 namespace OP26Lab4FormDB {
 
@@ -8,74 +9,159 @@ namespace OP26Lab4FormDB {
 	using namespace System::Windows::Forms;
 	using namespace System::Data;
 	using namespace System::Drawing;
+	using namespace MySql::Data::MySqlClient;
 
-	/// <summary>
-	/// Summary for MainForm
-	/// </summary>
 	public ref class MainForm : public System::Windows::Forms::Form
 	{
 	public:
 		MainForm(void)
 		{
 			InitializeComponent();
-			//
-			//TODO: Add the constructor code here
-			//
+			InitializeCustomControls();
+			LoadData(""); 
 		}
 
 	protected:
-		/// <summary>
-		/// Clean up any resources being used.
-		/// </summary>
-		~MainForm()
-		{
-			if (components)
-			{
-				delete components;
-			}
-		}
-	private: System::Windows::Forms::Label^ label1;
-	protected:
+		~MainForm() { if (components) delete components; }
 
 	private:
-		/// <summary>
-		/// Required designer variable.
-		/// </summary>
-		System::ComponentModel::Container ^components;
+		DataGridView^ dgv;
+		Button^ btnAdd;
+		Button^ btnDelete;
+		Button^ btnRefresh;
+		TextBox^ txtSearch;
+		Label^ lblSearch;
+		System::ComponentModel::Container^ components;
+
+		void InitializeCustomControls() {
+			this->Text = L"Облік слабоалкогольних напоїв";
+			this->Size = System::Drawing::Size(950, 600);
+			this->StartPosition = FormStartPosition::CenterScreen;
+
+			btnAdd = gcnew Button();
+			btnAdd->Text = L"Додати товар";
+			btnAdd->Location = Point(12, 12);
+			btnAdd->Size = System::Drawing::Size(150, 40);
+			btnAdd->Click += gcnew EventHandler(this, &MainForm::OnAddClick);
+			this->Controls->Add(btnAdd);
+
+			btnDelete = gcnew Button();
+			btnDelete->Text = L"Видалити обране";
+			btnDelete->Location = Point(170, 12);
+			btnDelete->Size = System::Drawing::Size(150, 40);
+			btnDelete->Click += gcnew EventHandler(this, &MainForm::OnDeleteClick);
+			this->Controls->Add(btnDelete);
+
+			btnRefresh = gcnew Button();
+			btnRefresh->Text = L"Оновити";
+			btnRefresh->Location = Point(330, 12);
+			btnRefresh->Size = System::Drawing::Size(100, 40);
+			btnRefresh->Click += gcnew EventHandler(this, &MainForm::OnRefreshClick);
+			this->Controls->Add(btnRefresh);
+
+			lblSearch = gcnew Label();
+			lblSearch->Text = L"Пошук за назвою:";
+			lblSearch->Location = Point(450, 25);
+			lblSearch->AutoSize = true;
+			this->Controls->Add(lblSearch);
+
+			txtSearch = gcnew TextBox();
+			txtSearch->Location = Point(560, 22);
+			txtSearch->Size = System::Drawing::Size(200, 30);
+			txtSearch->TextChanged += gcnew EventHandler(this, &MainForm::OnSearchChange);
+			this->Controls->Add(txtSearch);
+
+			dgv = gcnew DataGridView();
+			dgv->Location = Point(12, 70);
+			dgv->Size = System::Drawing::Size(910, 480);
+			dgv->AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode::Fill;
+			dgv->SelectionMode = DataGridViewSelectionMode::FullRowSelect;
+			dgv->ReadOnly = true;
+			this->Controls->Add(dgv);
+		}
+
+		void LoadData(String^ searchText) {
+			String^ connString = "Server=localhost;Database=shop_db;Uid=root;Pwd=V30121995;Charset=utf8;";
+			MySqlConnection^ conn = gcnew MySqlConnection(connString);
+
+			try {
+				conn->Open();
+				String^ sql = "";
+				MySqlCommand^ cmd;
+
+				if (String::IsNullOrEmpty(searchText)) {
+					sql = "SELECT * FROM products";
+					cmd = gcnew MySqlCommand(sql, conn);
+				}
+				else {
+					sql = "SELECT * FROM products WHERE brand LIKE @search OR type LIKE @search";
+					cmd = gcnew MySqlCommand(sql, conn);
+					cmd->Parameters->AddWithValue("@search", "%" + searchText + "%");
+				}
+
+				MySqlDataAdapter^ adapter = gcnew MySqlDataAdapter(cmd);
+				DataTable^ table = gcnew DataTable();
+				adapter->Fill(table);
+				dgv->DataSource = table;
+			}
+			catch (Exception^ ex) {
+				MessageBox::Show(L"Помилка: " + ex->Message);
+			}
+			finally {
+				conn->Close();
+			}
+		}
+
+		void OnAddClick(Object^ sender, EventArgs^ e) {
+			AddForm^ form = gcnew AddForm();
+			form->ShowDialog();
+			LoadData("");
+		}
+
+		void OnRefreshClick(Object^ sender, EventArgs^ e) {
+			LoadData("");
+		}
+
+		void OnSearchChange(Object^ sender, EventArgs^ e) {
+			LoadData(txtSearch->Text);
+		}
+
+		void OnDeleteClick(Object^ sender, EventArgs^ e) {
+			if (dgv->SelectedRows->Count > 0) {
+				String^ id = dgv->SelectedRows[0]->Cells[0]->Value->ToString();
+
+				if (MessageBox::Show(L"Видалити запис ID: " + id + "?",
+					L"Підтвердження", MessageBoxButtons::YesNo, MessageBoxIcon::Warning) == System::Windows::Forms::DialogResult::Yes) {
+
+					DeleteRecord(id);
+					LoadData("");
+				}
+			}
+			else {
+				MessageBox::Show(L"Оберіть рядок!");
+			}
+		}
+
+		void DeleteRecord(String^ id) {
+			String^ connString = "Server=localhost;Database=shop_db;Uid=root;Pwd=V30121995;";
+			MySqlConnection^ conn = gcnew MySqlConnection(connString);
+			try {
+				conn->Open();
+				MySqlCommand^ cmd = gcnew MySqlCommand("DELETE FROM products WHERE id = @id", conn);
+				cmd->Parameters->AddWithValue("@id", id);
+				cmd->ExecuteNonQuery();
+			}
+			catch (Exception^ ex) {
+				MessageBox::Show(L"Помилка видалення: " + ex->Message);
+			}
+			conn->Close();
+		}
 
 #pragma region Windows Form Designer generated code
-		/// <summary>
-		/// Required method for Designer support - do not modify
-		/// the contents of this method with the code editor.
-		/// </summary>
 		void InitializeComponent(void)
 		{
-			this->label1 = (gcnew System::Windows::Forms::Label());
-			this->SuspendLayout();
-			// 
-			// label1
-			// 
-			this->label1->AutoSize = true;
-			this->label1->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 11, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
-				static_cast<System::Byte>(204)));
-			this->label1->ForeColor = System::Drawing::Color::DarkBlue;
-			this->label1->Location = System::Drawing::Point(131, 17);
-			this->label1->Name = L"label1";
-			this->label1->Size = System::Drawing::Size(131, 24);
-			this->label1->TabIndex = 0;
-			this->label1->Text = L"Lab4_FormDB";
-			// 
-			// MainForm
-			// 
-			this->AutoScaleDimensions = System::Drawing::SizeF(8, 16);
+			this->components = gcnew System::ComponentModel::Container();
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-			this->ClientSize = System::Drawing::Size(542, 311);
-			this->Controls->Add(this->label1);
-			this->Name = L"MainForm";
-			this->Text = L"MainForm";
-			this->ResumeLayout(false);
-			this->PerformLayout();
-
 		}
 #pragma endregion
 	};

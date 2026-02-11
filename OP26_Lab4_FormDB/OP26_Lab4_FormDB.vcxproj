@@ -111,6 +111,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <Reference Include="MySql.Data">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\MySQL\MySQL Connector NET 9.6\MySql.Data.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
@@ -121,6 +124,7 @@
     <ClCompile Include="MainForm.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AddForm.h" />
     <ClInclude Include="MainForm.h">
       <FileType>CppForm</FileType>
     </ClInclude>
